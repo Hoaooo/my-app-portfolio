@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>我的应用工坊 | 个人应用集合</title>
+    <title>AppToyBox</title>
     <style>
-        /* 基础样式 */
+        /* 原有样式保持不变 */
         :root {
             --primary-color: #4a6fa5;
             --secondary-color: #6b8cbc;
@@ -75,8 +75,33 @@
         .nav-links a:hover {
             color: var(--primary-color);
         }
+
+        /* 访问次数样式（新增） */
+        .visit-count {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-left: 20px;
+        }
         
-        /* 英雄区域样式 */
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+            }
+            
+            .nav-links {
+                margin-top: 15px;
+            }
+            
+            .nav-links li {
+                margin: 0 10px;
+            }
+
+            .visit-count {
+                margin: 15px 0 0;
+            }
+        }
+        
+        /* 以下为原有其他样式，保持不变 */
         .hero {
             background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
             color: white;
@@ -113,7 +138,6 @@
             transform: translateY(-2px);
         }
         
-        /* 应用展示区域 */
         .apps-section {
             padding: 80px 0;
         }
@@ -190,7 +214,6 @@
             color: white;
         }
         
-        /* 应用详情区域 */
         .app-detail {
             display: none;
             padding: 40px 0;
@@ -224,7 +247,6 @@
             color: #999;
         }
         
-        /* 下载区域 */
         .download-section {
             background-color: var(--dark-color);
             color: white;
@@ -237,67 +259,47 @@
             margin-top: 20px;
         }
         
-        /* 页脚 */
         footer {
             background-color: var(--dark-color);
             color: white;
             padding: 30px 0;
             text-align: center;
         }
-        
-        /* 响应式设计 */
-        @media (max-width: 768px) {
-            .navbar {
-                flex-direction: column;
-            }
-            
-            .nav-links {
-                margin-top: 15px;
-            }
-            
-            .nav-links li {
-                margin: 0 10px;
-            }
-            
-            .hero h1 {
-                font-size: 2rem;
-            }
-            
-            .apps-grid {
-                grid-template-columns: 1fr;
-            }
-        }
     </style>
 </head>
 <body>
-    <!-- 导航栏 -->
+    <!-- 导航栏（新增访问次数显示） -->
     <header>
         <div class="container">
             <nav class="navbar">
-                <div class="logo">应用工坊</div>
+                <div class="logo">AppToyBox</div>
                 <ul class="nav-links">
                     <li><a href="#home">首页</a></li>
                     <li><a href="#apps">应用</a></li>
                     <li><a href="#about">关于</a></li>
                     <li><a href="#contact">联系</a></li>
                 </ul>
+                <!-- 访问次数显示 -->
+                <div class="visit-count">访问次数: <span id="count">加载中...</span></div>
             </nav>
         </div>
     </header>
 
+
     <!-- 英雄区域 -->
     <section class="hero" id="home">
         <div class="container">
-            <h1>探索我的创意应用</h1>
-            <p>这里汇集了我开发的各种实用小工具，您可以在线使用或下载到本地</p>
+            <h1>探索创意应用</h1>
+            <p>这里汇集了开发的各种实用小工具，您可以在线使用或下载到本地</p>
             <a href="#apps" class="btn">浏览应用</a>
         </div>
     </section>
 
+
     <!-- 应用展示区域 -->
     <section class="apps-section" id="apps">
         <div class="container">
-            <h2 class="section-title">我的应用集合</h2>
+            <h2 class="section-title">App Box</h2>
             <div class="apps-grid">
                 <!-- 应用卡片 1 -->
                 <div class="app-card">
@@ -307,7 +309,7 @@
                         <p class="app-description">将您的数据转换为精美的图表和图形，支持多种数据格式导入。</p>
                         <div class="app-actions">
                             <button class="btn" onclick="openApp('app1')">在线使用</button>
-                            <a href="https://github.com/yourusername/your-repo/raw/main/apps/data-visualizer.zip" class="btn btn-outline">下载</a>
+                            <a href="#" class="btn btn-outline">下载</a>
                         </div>
                     </div>
                 </div>
@@ -320,7 +322,7 @@
                         <p class="app-description">简洁高效的Markdown编辑器，实时预览，支持导出多种格式。</p>
                         <div class="app-actions">
                             <button class="btn" onclick="openApp('app2')">在线使用</button>
-                            <a href="https://github.com/yourusername/your-repo/raw/main/apps/markdown-editor.zip" class="btn btn-outline">下载</a>
+                            <a href="#" class="btn btn-outline">下载</a>
                         </div>
                     </div>
                 </div>
@@ -333,7 +335,7 @@
                         <p class="app-description">帮助您找到完美的色彩组合，支持色轮选择和调色板导出。</p>
                         <div class="app-actions">
                             <button class="btn" onclick="openApp('app3')">在线使用</button>
-                            <a href="https://github.com/yourusername/your-repo/raw/main/apps/color-palette.zip" class="btn btn-outline">下载</a>
+                            <a href="#" class="btn btn-outline">下载</a>
                         </div>
                     </div>
                 </div>
@@ -346,13 +348,14 @@
                         <p class="app-description">番茄工作法计时器，帮助您提高工作效率，跟踪任务完成情况。</p>
                         <div class="app-actions">
                             <button class="btn" onclick="openApp('app4')">在线使用</button>
-                            <a href="https://github.com/yourusername/your-repo/raw/main/apps/time-manager.zip" class="btn btn-outline">下载</a>
+                            <a href="#" class="btn btn-outline">下载</a>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
     </section>
+
 
     <!-- 应用详情区域 -->
     <div class="container">
@@ -381,43 +384,84 @@
         </div>
     </div>
 
-    <!-- 下载区域 -->
-    <section class="download-section" id="about">
-        <div class="container">
-            <h2 class="section-title">下载完整应用包</h2>
-            <p>想要离线使用所有应用？下载完整应用包，包含所有工具和说明文档。</p>
-            <a href="https://github.com/yourusername/your-repo/archive/main.zip" class="btn">下载完整包</a>
-        </div>
-    </section>
 
     <!-- 页脚 -->
     <footer id="contact">
         <div class="container">
-            <p>© 2023 我的应用工坊 | 联系邮箱: contact@myappworkshop.com</p>
-            <p style="margin-top: 10px;">通过GitHub Pages部署</p>
+            <p>AppToyBox | 联系邮箱: contact@apptoybox@163.com</p>
         </div>
     </footer>
 
+
     <script>
+        // ==== 访问次数统计（核心代码）====
+        // 替换为你的信息
+        const GITHUB_TOKEN = "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"; // 刚才生成的Token
+        const REPO_OWNER = "Hoaooo"; // 如：octocat
+        const REPO_NAME = "my-app-portfolio"; // 如：my-site
+        const ISSUE_ID = 1; // 刚才创建的Issue的ID（数字）
+
+        // 初始化访问次数
+        async function initVisitCount() {
+            const countElement = document.getElementById('count');
+            try {
+                // 1. 获取Issue的评论（存储次数的地方）
+                const commentsRes = await fetch(
+                    `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${ISSUE_ID}/comments`,
+                    { headers: { Authorization: `token ${GITHUB_TOKEN}` } }
+                );
+                const comments = await commentsRes.json();
+
+                // 2. 计算最新次数（如果有评论，取第一条的内容作为次数；否则从0开始）
+                let currentCount = comments.length > 0 ? parseInt(comments[0].body) : 0;
+                currentCount++; // 累加1次当前访问
+
+                // 3. 更新评论（如果有评论则编辑，否则新增）
+                if (comments.length > 0) {
+                    // 编辑现有评论
+                    await fetch(comments[0].url, {
+                        method: 'PATCH',
+                        headers: {
+                            Authorization: `token ${GITHUB_TOKEN}`,
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ body: currentCount.toString() })
+                    });
+                } else {
+                    // 新增评论
+                    await fetch(
+                        `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${ISSUE_ID}/comments`,
+                        {
+                            method: 'POST',
+                            headers: {
+                                Authorization: `token ${GITHUB_TOKEN}`,
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ body: currentCount.toString() })
+                        }
+                    );
+                }
+
+                // 4. 显示最新次数
+                countElement.textContent = currentCount;
+            } catch (error) {
+                console.error("统计失败:", error);
+                countElement.textContent = "加载失败";
+            }
+        }
+
+        // ==== 原有功能代码 ====
         // 打开应用详情
         function openApp(appId) {
-            // 隐藏所有应用详情
             const details = document.querySelectorAll('.app-detail');
-            details.forEach(detail => {
-                detail.classList.remove('active');
-            });
-            
-            // 显示选中的应用详情
+            details.forEach(detail => detail.classList.remove('active'));
             document.getElementById(`${appId}-detail`).classList.add('active');
-            
-            // 滚动到详情区域
             document.getElementById(`${appId}-detail`).scrollIntoView({ behavior: 'smooth' });
         }
         
         // 关闭应用详情
         function closeApp() {
-            const details = document.querySelectorAll('.app-detail');
-            details.forEach(detail => {
+            document.querySelectorAll('.app-detail').forEach(detail => {
                 detail.classList.remove('active');
             });
         }
@@ -426,18 +470,17 @@
         document.querySelectorAll('a[href^="#"]').forEach(anchor => {
             anchor.addEventListener('click', function (e) {
                 e.preventDefault();
-                
                 const targetId = this.getAttribute('href');
-                if(targetId === '#') return;
-                
-                const targetElement = document.querySelector(targetId);
-                if(targetElement) {
-                    targetElement.scrollIntoView({
-                        behavior: 'smooth'
-                    });
+                if(targetId !== '#') {
+                    document.querySelector(targetId)?.scrollIntoView({ behavior: 'smooth' });
                 }
             });
         });
+
+        // 页面加载时初始化统计
+        window.onload = function() {
+            initVisitCount(); // 启动访问统计
+        };
     </script>
 </body>
 </html>
