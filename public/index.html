@@ -394,93 +394,81 @@
 
 
     <script>
-        // ==== 访问次数统计（核心代码）====
-        // 替换为你的信息
-        const GITHUB_TOKEN = "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"; // 刚才生成的Token
-        const REPO_OWNER = "Hoaooo"; // 如：octocat
-        const REPO_NAME = "my-app-portfolio"; // 如：my-site
-        const ISSUE_ID = 1; // 刚才创建的Issue的ID（数字）
+        // 访问次数统计（真实后端API）
+async function initVisitCount() {
+  const countElement = document.getElementById('count');
+  
+  try {
+    // 显示加载状态
+    countElement.innerHTML = '<span class="loading"></span>统计中...';
+    
+    // 调用后端API增加访问次数
+    const response = await fetch('/api/visit-count', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP错误! 状态: ${response.status}`);
+    }
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      countElement.textContent = data.count;
+      
+      // 首次访问显示欢迎消息
+      if (data.count <= 5) {
+        showNotification(`欢迎！您是第 ${data.count} 位访客`, 'success');
+      }
+    } else {
+      throw new Error(data.error || '未知错误');
+    }
+  } catch (error) {
+    console.error("访问统计失败:", error);
+    await handleVisitCountFallback(countElement);
+  }
+}
 
-        // 初始化访问次数
-        async function initVisitCount() {
-            const countElement = document.getElementById('count');
-            try {
-                // 1. 获取Issue的评论（存储次数的地方）
-                const commentsRes = await fetch(
-                    `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${ISSUE_ID}/comments`,
-                    { headers: { Authorization: `token ${GITHUB_TOKEN}` } }
-                );
-                const comments = await commentsRes.json();
+// 备用统计方案
+async function handleVisitCountFallback(countElement) {
+  try {
+    // 首先尝试获取当前计数（不增加）
+    const getResponse = await fetch('/api/visit-count', {
+      method: 'GET'
+    });
+    
+    if (getResponse.ok) {
+      const data = await getResponse.json();
+      if (data.success) {
+        countElement.textContent = data.count;
+        showNotification('统计加载成功', 'success');
+        return;
+      }
+    }
+  } catch (getError) {
+    console.log('GET请求失败，使用本地计数');
+  }
+  
+  // 使用本地存储作为备用
+  let localCount = parseInt(localStorage.getItem('visitCount') || '0');
+  localCount += 1;
+  localStorage.setItem('visitCount', localCount.toString());
+  
+  countElement.textContent = `${localCount} (本地)`;
+  countElement.style.color = '#ff7e5f';
+  countElement.title = '使用本地存储统计';
+  
+  showNotification('使用本地访问统计', 'warning');
+}
 
-                // 2. 计算最新次数（如果有评论，取第一条的内容作为次数；否则从0开始）
-                let currentCount = comments.length > 0 ? parseInt(comments[0].body) : 0;
-                currentCount++; // 累加1次当前访问
-
-                // 3. 更新评论（如果有评论则编辑，否则新增）
-                if (comments.length > 0) {
-                    // 编辑现有评论
-                    await fetch(comments[0].url, {
-                        method: 'PATCH',
-                        headers: {
-                            Authorization: `token ${GITHUB_TOKEN}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({ body: currentCount.toString() })
-                    });
-                } else {
-                    // 新增评论
-                    await fetch(
-                        `https://api.github.com/repos/${REPO_OWNER}/${REPO_NAME}/issues/${ISSUE_ID}/comments`,
-                        {
-                            method: 'POST',
-                            headers: {
-                                Authorization: `token ${GITHUB_TOKEN}`,
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ body: currentCount.toString() })
-                        }
-                    );
-                }
-
-                // 4. 显示最新次数
-                countElement.textContent = currentCount;
-            } catch (error) {
-                console.error("统计失败:", error);
-                countElement.textContent = "加载失败";
-            }
-        }
-
-        // ==== 原有功能代码 ====
-        // 打开应用详情
-        function openApp(appId) {
-            const details = document.querySelectorAll('.app-detail');
-            details.forEach(detail => detail.classList.remove('active'));
-            document.getElementById(`${appId}-detail`).classList.add('active');
-            document.getElementById(`${appId}-detail`).scrollIntoView({ behavior: 'smooth' });
-        }
-        
-        // 关闭应用详情
-        function closeApp() {
-            document.querySelectorAll('.app-detail').forEach(detail => {
-                detail.classList.remove('active');
-            });
-        }
-        
-        // 平滑滚动
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const targetId = this.getAttribute('href');
-                if(targetId !== '#') {
-                    document.querySelector(targetId)?.scrollIntoView({ behavior: 'smooth' });
-                }
-            });
-        });
-
-        // 页面加载时初始化统计
-        window.onload = function() {
-            initVisitCount(); // 启动访问统计
-        };
+// 在页面加载时调用
+window.addEventListener('DOMContentLoaded', function() {
+  initVisitCount();
+});
     </script>
 </body>
 </html>
+
