@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>懒人选择器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    
+    <!-- 配置Tailwind自定义颜色和字体 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#3B82F6',
+                        secondary: '#10B981',
+                        accent: '#F59E0B',
+                        dark: '#1F2937',
+                        light: '#F3F4F6'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            .card-hover {
+                transition: all 0.3s ease;
+            }
+            .card-hover:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            }
+            .pulse-effect {
+                animation: pulse 2s infinite;
+            }
+            @keyframes pulse {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.02); }
+                100% { transform: scale(1); }
+            }
+            .fade-in {
+                animation: fadeIn 0.3s ease forwards;
+            }
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            .slide-out {
+                animation: slideOut 0.3s ease forwards;
+            }
+            @keyframes slideOut {
+                from { opacity: 1; transform: translateX(0); }
+                to { opacity: 0; transform: translateX(-20px); height: 0; margin: 0; padding: 0; }
+            }
+        }
+    </style>
+</head>
+<body class="font-inter bg-gradient-to-br from-light to-white min-h-screen text-dark">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- 页面标题 -->
+        <header class="text-center mb-8">
+            <h1 class="text-[clamp(2rem,5vw,3.5rem)] font-bold text-primary mb-4 text-shadow">
+                <i class="fa fa-random mr-3"></i>懒人选择器
+            </h1>
+            <p class="text-gray-600 text-lg max-w-2xl mx-auto">
+                告别拖延，随机选一个立刻行动！
+            </p>
+        </header>
+        
+        <!-- 重点突出：随机选择活动区域 -->
+        <div class="bg-white rounded-white rounded-2xl shadow-xl p-8 mb-8 pulse-effect fade-in">
+            <h2 class="text-2xl font-semibold mb-6 text-center">
+                <i class="fa fa-bullseye text-secondary mr-2"></i>当前选中的活动
+            </h2>
+            
+            <div id="selected-activity" class="text-center py-16 px-4 mb-8 w-full bg-gradient-to-r from-blue-50 to-green-50 rounded-xl min-h-[180px] flex items-center justify-center">
+                <p class="text-gray-500 text-xl">选择场景并点击下方按钮开始</p>
+            </div>
+            
+            <div class="text-center">
+                <button id="randomize-btn" 
+                        class="bg-primary hover:bg-blue-700 text-white text-xl font-medium px-10 py-5 rounded-full transition-all transform hover:scale-105 focus:outline-none focus:ring-4 focus:ring-blue-300 inline-flex items-center">
+                    <i class="fa fa-random mr-2"></i> 随机选择活动
+                </button>
+                
+                <p id="current-scene-display" class="mt-4 text-gray-600">
+                    当前场景: <span class="font-medium text-primary">"工作间隙"</span>
+                </p>
+            </div>
+        </div>
+        
+        <!-- 并排显示：场景管理 和 活动列表 -->
+        <div class="flex flex-col md:flex-row gap-6 fade-in" style="animation-delay: 0.1s">
+            <!-- 左侧：场景管理 -->
+            <div class="flex-1 bg-white rounded-xl shadow-lg p-6 card-hover">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold flex items-center">
+                        <i class="fa fa-folder-open text-accent mr-2"></i>场景管理
+                    </h2>
+                    
+                    <div class="flex gap-2">
+                        <input type="text" id="new-scene" 
+                               class="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-accent focus:border-accent transition-all outline-none text-sm w-36"
+                               placeholder="新场景...">
+                        <button id="add-scene" 
+                                class="bg-accent hover:bg-amber-600 text-white px-3 py-1 rounded-lg transition-colors text-sm flex items-center">
+                            <i class="fa fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="scene-list" class="space-y-2 max-h-80 overflow-y-auto pr-2">
+                    <!-- 场景项将通过JavaScript动态生成 -->
+                </div>
+            </div>
+            
+            <!-- 右侧：活动列表 -->
+            <div class="flex-1 bg-white rounded-xl shadow-lg p-6 card-hover">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold flex items-center">
+                        <i class="fa fa-list-ul text-primary mr-2"></i>活动列表
+                    </h2>
+                    
+                    <div class="flex gap-2">
+                        <input type="text" id="new-activity" 
+                               class="px-3 py-1 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none text-sm w-36"
+                               placeholder="新活动...">
+                        <button id="add-activity" 
+                                class="bg-primary hover:bg-blue-700 text-white px-3 py-1 rounded-lg transition-colors text-sm flex items-center">
+                            <i class="fa fa-plus"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div id="activity-list" class="space-y-2 max-h-80 overflow-y-auto pr-2">
+                    <!-- 活动项将通过JavaScript动态生成 -->
+                </div>
+                
+                <!-- 活动操作按钮 -->
+                <div class="mt-4 flex gap-2">
+                    <button id="clear-activities" 
+                            class="text-sm text-gray-500 hover:text-red-600 transition-colors flex-1 py-1 border border-gray-200 rounded-lg">
+                        <i class="fa fa-eraser mr-1"></i> 清空活动
+                    </button>
+                    <button id="reset-activities" 
+                            class="text-sm text-gray-500 hover:text-primary transition-colors flex-1 py-1 border border-gray-200 rounded-lg">
+                        <i class="fa fa-refresh mr-1"></i> 默认活动
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 操作提示区 -->
+        <div id="notification-area" class="mt-4 hidden p-3 rounded-lg text-center transition-all"></div>
+        
+        <!-- 页脚 -->
+        <footer class="mt-12 text-center text-gray-500 text-sm">
+            <p>懒人选择器 &copy; 2025 - 让行动开始更简单</p>
+        </footer>
+    </div>
+
+    <script>
+        // 等待DOM加载完成
+        document.addEventListener('DOMContentLoaded', function() {
+            // 获取DOM元素
+            const sceneList = document.getElementById('scene-list');
+            const newSceneInput = document.getElementById('new-scene');
+            const addSceneBtn = document.getElementById('add-scene');
+            const activityList = document.getElementById('activity-list');
+            const newActivityInput = document.getElementById('new-activity');
+            const addActivityBtn = document.getElementById('add-activity');
+            const randomizeBtn = document.getElementById('randomize-btn');
+            const selectedActivity = document.getElementById('selected-activity');
+            const currentSceneDisplay = document.getElementById('current-scene-display').querySelector('span');
+            const clearActivitiesBtn = document.getElementById('clear-activities');
+            const resetActivitiesBtn = document.getElementById('reset-activities');
+            const notificationArea = document.getElementById('notification-area');
+            
+            // 本地存储的键名
+            const STORAGE_KEY = 'scened_activities';
+            
+            // 默认场景和活动
+            const DEFAULT_SCENES = {
+                "工作间隙": [
+                    "抬腿30次",
+                    "猫牛式呼吸5组",
+                    "站起来走一圈",
+                    "做10个俯卧撑",
+                    "冥想2分钟"
+                ],
+                "晨间锻炼": [
+                    "慢跑10分钟",
+                    "拉伸全身",
+                    "20个仰卧起坐",
+                    "喝一杯温水",
+                    "做5个深蹲"
+                ],
+                "睡前放松": [
+                    "深呼吸练习",
+                    "冥想5分钟",
+                    "拉伸腿部",
+                    "听一首轻音乐",
+                    "写日记"
+                ]
+            };
+            
+            // 当前选中的场景
+            let currentScene = null;
+            
+            // 显示通知
+            function showNotification(message, isError = false) {
+                notificationArea.textContent = message;
+                notificationArea.className = `mt-4 p-3 rounded-lg text-center transition-all ${
+                    isError ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+                }`;
+                
+                setTimeout(() => {
+                    notificationArea.classList.add('opacity-0');
+                    setTimeout(() => {
+                        notificationArea.className = 'mt-4 hidden p-3 rounded-lg text-center transition-all';
+                    }, 300);
+                }, 3000);
+            }
+            
+            // 从本地存储获取场景数据
+            function getStoredData() {
+                const stored = localStorage.getItem(STORAGE_KEY);
+                return stored ? JSON.parse(stored) : DEFAULT_SCENES;
+            }
+            
+            // 保存数据到本地存储
+            function saveData(data) {
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+            }
+            
+            // 获取当前场景的活动
+            function getCurrentSceneActivities() {
+                const data = getStoredData();
+                return currentScene && data[currentScene] ? [...data[currentScene]] : [];
+            }
+            
+            // 更新当前场景的活动
+            function updateCurrentSceneActivities(activities) {
+                if (!currentScene) return;
+                
+                const data = getStoredData();
+                data[currentScene] = activities;
+                saveData(data);
+            }
+            
+            // 删除场景的函数
+            function deleteScene(scene, sceneEl) {
+                const data = getStoredData();
+                const scenes = Object.keys(data);
+                
+                // 不能删除最后一个场景
+                if (scenes.length <= 1) {
+                    showNotification('至少需要保留一个场景', true);
+                    return;
+                }
+                
+                if (confirm(`确定要删除场景"${scene}"吗？该场景下的所有活动也会被删除。`)) {
+                    // 添加删除动画
+                    sceneEl.classList.add('slide-out');
+                    
+                    // 等待动画完成后再执行删除操作
+                    setTimeout(() => {
+                        const wasCurrentScene = currentScene === scene;
+                        
+                        // 删除场景
+                        delete data[scene];
+                        saveData(data);
+                        
+                        // 如果删除的是当前场景，自动切换到第一个场景
+                        if (wasCurrentScene) {
+                            currentScene = Object.keys(data)[0];
+                            updateCurrentSceneDisplay();
+                            showNotification(`已切换到场景: ${currentScene}`);
+                        } else {
+                            showNotification(`场景"${scene}"已删除`);
+                        }
+                        
+                        // 重新渲染
+                        renderScenes();
+                        renderActivities();
+                    }, 300);
+                }
+            }
+            
+            // 渲染场景列表
+            function renderScenes() {
+                const data = getStoredData();
+                const scenes = Object.keys(data);
+                
+                // 清空列表
+                sceneList.innerHTML = '';
+                
+                if (scenes.length === 0) {
+                    const emptyMsg = document.createElement('div');
+                    emptyMsg.className = 'text-gray-500 text-center py-4 text-sm';
+                    emptyMsg.innerHTML = '<i class="fa fa-info-circle mr-1"></i> 暂无场景，请添加场景';
+                    sceneList.appendChild(emptyMsg);
+                    return;
+                }
+                
+                // 渲染每个场景
+                scenes.forEach(scene => {
+                    // 创建场景元素
+                    const sceneEl = document.createElement('div');
+                    sceneEl.className = `flex items-center justify-between p-3 rounded-lg transition-all ${
+                        scene === currentScene ? 'bg-primary/10 border border-primary/30' : 'bg-light hover:bg-gray-200'
+                    }`;
+                    
+                    // 创建场景名称元素
+                    const sceneNameEl = document.createElement('span');
+                    sceneNameEl.className = scene === currentScene ? 'font-medium text-primary' : '';
+                    sceneNameEl.textContent = scene;
+                    
+                    // 创建删除按钮
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'delete-scene text-red-500 hover:text-red-700 transition-colors opacity-70 hover:opacity-100 p-1';
+                    deleteBtn.innerHTML = '<i class="fa fa-times"></i>';
+                    deleteBtn.title = `删除场景 "${scene}"`;
+                    
+                    // 添加删除事件
+                    deleteBtn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        deleteScene(scene, sceneEl);
+                    });
+                    
+                    // 添加场景切换事件
+                    sceneEl.addEventListener('click', function() {
+                        if (currentScene !== scene) {
+                            currentScene = scene;
+                            renderScenes();
+                            renderActivities();
+                            updateCurrentSceneDisplay();
+                            showNotification(`已切换到场景: ${scene}`);
+                        }
+                    });
+                    
+                    // 组装场景元素
+                    sceneEl.appendChild(sceneNameEl);
+                    sceneEl.appendChild(deleteBtn);
+                    sceneList.appendChild(sceneEl);
+                });
+            }
+            
+            // 渲染活动列表
+            function renderActivities() {
+                // 清空现有列表
+                activityList.innerHTML = '';
+                
+                // 如果没有选中场景
+                if (!currentScene) {
+                    const emptyMsg = document.createElement('div');
+                    emptyMsg.className = 'text-gray-500 text-center py-4 text-sm';
+                    emptyMsg.innerHTML = '<i class="fa fa-info-circle mr-1"></i> 请先选择一个场景';
+                    activityList.appendChild(emptyMsg);
+                    return;
+                }
+                
+                // 获取当前场景的活动
+                const activities = getCurrentSceneActivities();
+                
+                if (activities.length === 0) {
+                    const emptyMsg = document.createElement('div');
+                    emptyMsg.className = 'text-gray-500 text-center py-4 text-sm';
+                    emptyMsg.innerHTML = '<i class="fa fa-info-circle mr-1"></i> 该场景暂无活动，添加一些活动吧';
+                    activityList.appendChild(emptyMsg);
+                    return;
+                }
+                
+                // 渲染每个活动
+                activities.forEach(activity => {
+                    const activityEl = document.createElement('div');
+                    activityEl.className = 'flex items-center justify-between p-3 bg-light hover:bg-gray-200 rounded-lg transition-all';
+                    
+                    const activityNameEl = document.createElement('span');
+                    activityNameEl.textContent = activity;
+                    
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'delete-activity text-red-500 hover:text-red-700 transition-colors opacity-70 hover:opacity-100';
+                    deleteBtn.innerHTML = '<i class="fa fa-times"></i>';
+                    deleteBtn.title = `删除活动 "${activity}"`;
+                    
+                    deleteBtn.addEventListener('click', function(e) {
+                        e.stopPropagation();
+                        // 添加删除动画
+                        activityEl.classList.add('slide-out');
+                        
+                        setTimeout(() => {
+                            // 更新并保存活动列表
+                            const updatedActivities = getCurrentSceneActivities().filter(a => a !== activity);
+                            updateCurrentSceneActivities(updatedActivities);
+                            showNotification(`活动"${activity}"已删除`);
+                            renderActivities();
+                        }, 300);
+                    });
+                    
+                    activityEl.appendChild(activityNameEl);
+                    activityEl.appendChild(deleteBtn);
+                    activityList.appendChild(activityEl);
+                });
+            }
+            
+            // 更新当前场景显示
+            function updateCurrentSceneDisplay() {
+                if (currentScene) {
+                    currentSceneDisplay.textContent = `"${currentScene}"`;
+                }
+            }
+            
+            // 添加新场景
+            function addScene(sceneName) {
+                if (!sceneName.trim()) {
+                    showNotification('请输入场景名称', true);
+                    return;
+                }
+                
+                const data = getStoredData();
+                
+                // 检查场景是否已存在
+                if (data[sceneName]) {
+                    showNotification('该场景已存在', true);
+                    return;
+                }
+                
+                // 添加新场景（初始为空活动列表）
+                data[sceneName] = [];
+                saveData(data);
+                
+                // 清空输入框
+                newSceneInput.value = '';
+                
+                // 切换到新场景
+                currentScene = sceneName;
+                updateCurrentSceneDisplay();
+                
+                // 重新渲染
+                renderScenes();
+                renderActivities();
+                
+                showNotification(`已添加新场景: ${sceneName}`);
+            }
+            
+            // 添加新活动
+            function addActivity(text) {
+                if (!text.trim()) return;
+                if (!currentScene) {
+                    showNotification('请先选择一个场景', true);
+                    return;
+                }
+                
+                // 获取当前活动列表
+                const activities = getCurrentSceneActivities();
+                
+                // 检查活动是否已存在
+                if (activities.includes(text)) {
+                    showNotification('该活动已存在于当前场景中', true);
+                    return;
+                }
+                
+                // 添加新活动
+                const updatedActivities = [...activities, text];
+                updateCurrentSceneActivities(updatedActivities);
+                
+                // 清空输入框
+                newActivityInput.value = '';
+                
+                // 重新渲染活动列表
+                renderActivities();
+                
+                showNotification(`已添加活动: ${text}`);
+            }
+            
+            // 随机选择活动
+            function selectRandomActivity() {
+                if (!currentScene) {
+                    selectedActivity.innerHTML = '<p class="text-red-500">请先选择一个场景</p>';
+                    return;
+                }
+                
+                const activities = getCurrentSceneActivities();
+                if (activities.length === 0) {
+                    selectedActivity.innerHTML = '<p class="text-red-500">当前场景没有活动，请先添加活动</p>';
+                    return;
+                }
+                
+                // 随机选择一个活动
+                const randomIndex = Math.floor(Math.random() * activities.length);
+                const randomActivity = activities[randomIndex];
+                
+                // 添加动画效果
+                selectedActivity.classList.add('scale-95', 'opacity-0');
+                
+                setTimeout(() => {
+                    selectedActivity.innerHTML = `<p class="text-3xl font-bold text-primary">${randomActivity}</p>`;
+                    selectedActivity.classList.remove('scale-95', 'opacity-0');
+                    selectedActivity.classList.add('scale-105');
+                    
+                    setTimeout(() => {
+                        selectedActivity.classList.remove('scale-105');
+                    }, 300);
+                }, 300);
+            }
+            
+            // 清空当前场景的活动
+            function clearCurrentSceneActivities() {
+                if (!currentScene) {
+                    showNotification('请先选择一个场景', true);
+                    return;
+                }
+                
+                const activities = getCurrentSceneActivities();
+                if (activities.length === 0) {
+                    showNotification('当前场景已经没有活动了', true);
+                    return;
+                }
+                
+                if (confirm(`确定要清空场景"${currentScene}"中的所有活动吗？`)) {
+                    updateCurrentSceneActivities([]);
+                    renderActivities();
+                    showNotification(`场景"${currentScene}"的活动已清空`);
+                }
+            }
+            
+            // 重置当前场景为默认活动
+            function resetToDefaultActivities() {
+                if (!currentScene) {
+                    showNotification('请先选择一个场景', true);
+                    return;
+                }
+                
+                // 预设场景的默认活动
+                const sceneDefaults = {
+                    "工作间隙": [
+                        "抬腿30次",
+                        "猫牛式呼吸5组",
+                        "站起来走一圈",
+                        "做10个俯卧撑",
+                        "冥想2分钟"
+                    ],
+                    "晨间锻炼": [
+                        "慢跑10分钟",
+                        "拉伸全身",
+                        "20个仰卧起坐",
+                        "喝一杯温水",
+                        "做5个深蹲"
+                    ],
+                    "睡前放松": [
+                        "深呼吸练习",
+                        "冥想5分钟",
+                        "拉伸腿部",
+                        "听一首轻音乐",
+                        "写日记"
+                    ]
+                };
+                
+                // 如果是预设场景，使用其默认活动，否则使用工作间隙的默认活动
+                const defaultActivities = sceneDefaults[currentScene] || sceneDefaults["工作间隙"];
+                
+                if (confirm(`确定要将场景"${currentScene}"重置为默认活动吗？`)) {
+                    updateCurrentSceneActivities(defaultActivities);
+                    renderActivities();
+                    showNotification(`场景"${currentScene}"已重置为默认活动`);
+                }
+            }
+            
+            // 事件监听
+            addSceneBtn.addEventListener('click', () => addScene(newSceneInput.value));
+            newSceneInput.addEventListener('keypress', (e) => e.key === 'Enter' && addScene(newSceneInput.value));
+            
+            addActivityBtn.addEventListener('click', () => addActivity(newActivityInput.value));
+            newActivityInput.addEventListener('keypress', (e) => e.key === 'Enter' && addActivity(newActivityInput.value));
+            
+            randomizeBtn.addEventListener('click', selectRandomActivity);
+            clearActivitiesBtn.addEventListener('click', clearCurrentSceneActivities);
+            resetActivitiesBtn.addEventListener('click', resetToDefaultActivities);
+            
+            // 初始化页面
+            function init() {
+                const scenes = Object.keys(getStoredData());
+                if (scenes.length > 0) {
+                    currentScene = scenes[0];
+                    updateCurrentSceneDisplay();
+                }
+                renderScenes();
+                renderActivities();
+            }
+            
+            init();
+        });
+    </script>
+</body>
+</html>
