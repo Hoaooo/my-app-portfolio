@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AppToyBox</title>
+    <style>
+        /* 基础样式 */
+        :root {
+            --primary-color: #4a6fa5;
+            --secondary-color: #6b8cbc;
+            --accent-color: #ff7e5f;
+            --light-color: #f5f7fa;
+            --dark-color: #2c3e50;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background-color: var(--light-color);
+            color: var(--dark-color);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* 导航栏样式 */
+        header {
+            background-color: white;
+            box-shadow: var(--shadow);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+        }
+        
+        .logo {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .nav-links {
+            display: flex;
+            list-style: none;
+        }
+        
+        .nav-links li {
+            margin-left: 25px;
+        }
+        
+        .nav-links a {
+            text-decoration: none;
+            color: var(--dark-color);
+            font-weight: 500;
+            transition: color 0.3s;
+        }
+        
+        .nav-links a:hover {
+            color: var(--primary-color);
+        }
+        
+        /* 英雄区域样式 */
+        .hero {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            padding: 80px 0;
+            text-align: center;
+        }
+        
+        .hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+        }
+        
+        .hero p {
+            font-size: 1.2rem;
+            max-width: 700px;
+            margin: 0 auto 30px;
+        }
+        
+        .btn {
+            display: inline-block;
+            background-color: var(--accent-color);
+            color: white;
+            padding: 12px 25px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .btn:hover {
+            background-color: #ff6b4a;
+            transform: translateY(-2px);
+        }
+        
+        /* 应用展示区域 */
+        .apps-section {
+            padding: 80px 0;
+        }
+        
+        .section-title {
+            text-align: center;
+            margin-bottom: 50px;
+            font-size: 2rem;
+            color: var(--dark-color);
+        }
+        
+        .apps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 30px;
+        }
+        
+        .app-card {
+            background-color: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: var(--shadow);
+            transition: transform 0.3s;
+        }
+        
+        .app-card:hover {
+            transform: translateY(-10px);
+        }
+        
+        .app-image {
+            height: 180px;
+            background-color: #e0e7ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            color: var(--primary-color);
+        }
+        
+        .app-content {
+            padding: 20px;
+        }
+        
+        .app-title {
+            font-size: 1.3rem;
+            margin-bottom: 10px;
+        }
+        
+        .app-description {
+            color: #666;
+            margin-bottom: 20px;
+            height: 60px;
+            overflow: hidden;
+        }
+        
+        .app-actions {
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .app-actions .btn {
+            padding: 8px 15px;
+            font-size: 0.9rem;
+        }
+        
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid var(--primary-color);
+            color: var(--primary-color);
+        }
+        
+        .btn-outline:hover {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        /* 应用详情区域 */
+        .app-detail {
+            display: none;
+            padding: 40px 0;
+            background-color: white;
+            border-radius: 10px;
+            margin-top: 40px;
+            box-shadow: var(--shadow);
+        }
+        
+        .app-detail.active {
+            display: block;
+        }
+        
+        .detail-header {
+            padding: 0 30px 20px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .detail-content {
+            padding: 30px;
+        }
+        
+        .close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #999;
+        }
+        
+        /* 下载区域 */
+        .download-section {
+            background-color: var(--dark-color);
+            color: white;
+            padding: 80px 0;
+            text-align: center;
+        }
+        
+        .download-section .btn {
+            background-color: var(--accent-color);
+            margin-top: 20px;
+        }
+        
+        /* 页脚 */
+        footer {
+            background-color: var(--dark-color);
+            color: white;
+            padding: 30px 0;
+            text-align: center;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+            }
+            
+            .nav-links {
+                margin-top: 15px;
+            }
+            
+            .nav-links li {
+                margin: 0 10px;
+            }
+            
+            .hero h1 {
+                font-size: 2rem;
+            }
+            
+            .apps-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 导航栏 -->
+    <header>
+        <div class="container">
+            <nav class="navbar">
+                <div class="logo">AppToyBox</div>
+                <ul class="nav-links">
+                    <li><a href="#home">首页</a></li>
+                    <li><a href="#apps">应用</a></li>
+                    <li><a href="#about">关于</a></li>
+                    <li><a href="#contact">联系</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+
+
+
+
+    <!-- 英雄区域 -->
+    <section class="hero" id="home">
+        <div class="container">
+            <h1>探索创意应用</h1>
+            <p>这里汇集了开发的各种实用小工具，您可以在线使用或下载到本地</p>
+            <a href="#apps" class="btn">浏览应用</a>
+        </div>
+    </section>
+
+
+
+
+    <!-- 应用展示区域 -->
+    <section class="apps-section" id="apps">
+        <div class="container">
+            <h2 class="section-title">App Box</h2>
+            <div class="apps-grid">
+                <!-- 应用卡片 1 -->
+                <div class="app-card">
+                    <div class="app-image">📊</div>
+                    <div class="app-content">
+                        <h3 class="app-title">数据可视化工具</h3>
+                        <p class="app-description">将您的数据转换为精美的图表和图形，支持多种数据格式导入。</p>
+                        <div class="app-actions">
+                            <button class="btn" onclick="openApp('app1')">在线使用</button>
+                            <a href="https://github.com/yourusername/your-repo/raw/main/apps/data-visualizer.zip" class="btn btn-outline">下载</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 应用卡片 2 -->
+                <div class="app-card">
+                    <div class="app-image">📝</div>
+                    <div class="app-content">
+                        <h3 class="app-title">Markdown编辑器</h3>
+                        <p class="app-description">简洁高效的Markdown编辑器，实时预览，支持导出多种格式。</p>
+                        <div class="app-actions">
+                            <button class="btn" onclick="openApp('app2')">在线使用</button>
+                            <a href="https://github.com/yourusername/your-repo/raw/main/apps/markdown-editor.zip" class="btn btn-outline">下载</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 应用卡片 3 -->
+                <div class="app-card">
+                    <div class="app-image">🎨</div>
+                    <div class="app-content">
+                        <h3 class="app-title">色彩搭配工具</h3>
+                        <p class="app-description">帮助您找到完美的色彩组合，支持色轮选择和调色板导出。</p>
+                        <div class="app-actions">
+                            <button class="btn" onclick="openApp('app3')">在线使用</button>
+                            <a href="https://github.com/yourusername/your-repo/raw/main/apps/color-palette.zip" class="btn btn-outline">下载</a>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 应用卡片 4 -->
+                <div class="app-card">
+                    <div class="app-image">⏱️</div>
+                    <div class="app-content">
+                        <h3 class="app-title">时间管理助手</h3>
+                        <p class="app-description">番茄工作法计时器，帮助您提高工作效率，跟踪任务完成情况。</p>
+                        <div class="app-actions">
+                            <button class="btn" onclick="openApp('app4')">在线使用</button>
+                            <a href="https://github.com/yourusername/your-repo/raw/main/apps/time-manager.zip" class="btn btn-outline">下载</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+
+
+
+    <!-- 应用详情区域 -->
+    <div class="container">
+        <div class="app-detail" id="app1-detail">
+            <div class="detail-header">
+                <h2>数据可视化工具</h2>
+                <button class="close-btn" onclick="closeApp()">&times;</button>
+            </div>
+            <div class="detail-content">
+                <p>这是一个功能强大的数据可视化工具，支持多种图表类型：</p>
+                <ul>
+                    <li>柱状图、折线图、饼图</li>
+                    <li>散点图、热力图、雷达图</li>
+                    <li>支持CSV、JSON、Excel数据导入</li>
+                    <li>自定义颜色和样式</li>
+                </ul>
+                <div style="margin-top: 20px;">
+                    <h3>在线使用</h3>
+                    <div style="background: #f0f0f0; padding: 20px; border-radius: 5px; margin-top: 10px;">
+                        <p>这里将显示数据可视化工具的界面</p>
+                        <input type="file" id="data-file" style="margin: 10px 0;">
+                        <button class="btn" style="margin-top: 10px;">生成图表</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+
+
+    <!-- 页脚 -->
+    <footer id="contact">
+        <div class="container">
+            <p>AppToyBox | 联系邮箱: contact@apptoybox@163.com</p>
+        </div>
+    </footer>
+
+
+
+
+    <script>
+        // 打开应用详情
+        function openApp(appId) {
+            // 隐藏所有应用详情
+            const details = document.querySelectorAll('.app-detail');
+            details.forEach(detail => {
+                detail.classList.remove('active');
+            });
+            
+            // 显示选中的应用详情
+            document.getElementById(`${appId}-detail`).classList.add('active');
+            
+            // 滚动到详情区域
+            document.getElementById(`${appId}-detail`).scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        // 关闭应用详情
+        function closeApp() {
+            const details = document.querySelectorAll('.app-detail');
+            details.forEach(detail => {
+                detail.classList.remove('active');
+            });
+        }
+        
+        // 平滑滚动
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                
+                const targetId = this.getAttribute('href');
+                if(targetId === '#') return;
+                
+                const targetElement = document.querySelector(targetId);
+                if(targetElement) {
+                    targetElement.scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
