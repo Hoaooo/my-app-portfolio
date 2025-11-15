@@ -214,7 +214,6 @@
         </div>
     </div>
 
-
     <!-- 配置页面 -->
     <div id="config-page" class="page hidden min-h-screen flex flex-col">
         <!-- 顶部导航栏 -->
@@ -306,7 +305,6 @@
             </div>
         </footer>
     </div>
-
 
     <!-- 计算页面 -->
     <div id="calc-page" class="page hidden min-h-screen flex flex-col">
@@ -480,7 +478,6 @@
         </footer>
     </div>
 
-
     <!-- 结果弹窗 -->
     <div id="result-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
         <div class="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4">
@@ -523,7 +520,6 @@
             </div>
         </div>
     </div>
-
 
     <script>
         // 全局变量
@@ -1518,8 +1514,7 @@
                 }
             }
             
-            suggestionText.innerHTML = suggestions.join('
-');
+            suggestionText.innerHTML = suggestions.join('<br>');
         }
         
         // 完成练习
