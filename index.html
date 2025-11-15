@@ -94,38 +94,12 @@
         </div>
     </section>
 
-
-
-
     <!-- 应用详情区域 -->
     <div class="container">
-        <div class="app-detail" id="app1-detail">
-            <div class="detail-header">
-                <h2>数据可视化工具</h2>
-                <button class="close-btn" onclick="closeApp()">&times;</button>
-            </div>
-            <div class="detail-content">
-                <p>这是一个功能强大的数据可视化工具，支持多种图表类型：</p>
-                <ul>
-                    <li>柱状图、折线图、饼图</li>
-                    <li>散点图、热力图、雷达图</li>
-                    <li>支持CSV、JSON、Excel数据导入</li>
-                    <li>自定义颜色和样式</li>
-                </ul>
-                <div style="margin-top: 20px;">
-                    <h3>在线使用</h3>
-                    <div style="background: #f0f0f0; padding: 20px; border-radius: 5px; margin-top: 10px;">
-                        <p>这里将显示数据可视化工具的界面</p>
-                        <input type="file" id="data-file" style="margin: 10px 0;">
-                        <button class="btn" style="margin-top: 10px;">生成图表</button>
-                    </div>
-                </div>
-            </div>
+        <div class="container">
+            <div class="app-detail" id="tool-detail-container"></div>
         </div>
     </div>
-
-
-
 
     <!-- 页脚 -->
     <footer id="contact">
@@ -136,8 +110,6 @@
     
     //主页script设置
     <script src="scripts/main.js"></script>
-
-
     
 </body>
 </html>
