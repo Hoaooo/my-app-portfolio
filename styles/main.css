@@ -1,4 +1,3 @@
- <style>
         /* 基础样式 */
         :root {
             --primary-color: #4a6fa5;
@@ -261,4 +260,3 @@
                 grid-template-columns: 1fr;
             }
         }
-    </style>
