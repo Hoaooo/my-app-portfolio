@@ -1,16 +1,23 @@
- // 打开应用详情
+// 打开应用详情
+// 从tools目录加载工具HTML
 function openApp(appId) {
-  // 隐藏所有应用详情
-  const details = document.querySelectorAll('.app-detail');
-  details.forEach(detail => {
-    detail.classList.remove('active');
-    });
-
-  // 显示选中的应用详情
-  document.getElementById(`${appId}-detail`).classList.add('active');
-  // 滚动到详情区域
-  document.getElementById(`${appId}-detail`).scrollIntoView({ behavior: 'smooth' });
+    // 清空并显示工具容器（需在index.html中新增一个容器）
+    const detailContainer = document.getElementById('tool-detail-container');
+    detailContainer.innerHTML = '';
+    detailContainer.style.display = 'block';
+    
+    // 动态加载工具的HTML（比如加载tools/data-visualizer/index.html）
+    fetch(`tools/${appId}/index.html`)
+        .then(response => response.text())
+        .then(html => {
+            detailContainer.innerHTML = html;
+            // 加载工具专属JS（比如data-visualizer.js）
+            const script = document.createElement('script');
+            script.src = `scripts/tools/${appId}.js`;
+            detailContainer.appendChild(script);
+        });
 }
+
 // 关闭应用详情
 function closeApp() {
   const details = document.querySelectorAll('.app-detail');
