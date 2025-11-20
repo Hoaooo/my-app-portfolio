@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>咕咚</title>
+  <!-- Tailwind CSS v3 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome -->
+  <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.8/dist/chart.umd.min.js"></script>
+  
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#3b82f6', // 浅蓝色
+            secondary: '#10b981', // 浅绿色
+            tertiary: '#60a5fa', // 更浅的蓝色
+            background: '#f0f9ff', // 背景色
+            text: '#1e3a8a', // 文字颜色
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', 'sans-serif'],
+          },
+          animation: {
+            'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'fade-out': 'fadeOut 0.3s ease-out forwards',
+          },
+          keyframes: {
+            fadeOut: {
+              '0%': { opacity: '1', transform: 'translateX(0)' },
+              '100%': { opacity: '0', transform: 'translateX(20px)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style type="text/tailwindcss">
+    @layer utilities {
+      .text-shadow {
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      }
+      .glass {
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+      }
+      .progress-ring-circle {
+        transition: stroke-dashoffset 0.5s ease;
+        transform: rotate(-90deg);
+        transform-origin: 50% 50%;
+      }
+      .card-hover {
+        transition: all 0.3s ease;
+      }
+      .card-hover:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 25px -5px rgba(59, 130, 246, 0.1), 0 10px 10px -5px rgba(59, 130, 246, 0.04);
+      }
+    }
+  </style>
+</head>
+<body class="bg-background min-h-screen font-sans text-text">
+  <!-- 错误提示容器 -->
+  <div id="errorContainer" class="fixed inset-0 bg-red-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4">
+      <h2 class="text-xl font-bold text-red-500 mb-4 flex items-center">
+        <i class="fa fa-exclamation-circle mr-2"></i>应用初始化失败
+      </h2>
+      <p id="errorMessage" class="text-gray-600 mb-4">发生未知错误，请稍后重试。</p>
+      <button id="retryBtn" class="w-full bg-primary hover:bg-blue-600 text-white py-2 px-4 rounded-lg transition-colors">
+        重试
+      </button>
+    </div>
+  </div>
+
+  <!-- 确认删除弹窗 -->
+  <div id="confirmDeleteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-xl shadow-xl p-6 max-w-sm w-full mx-4 transform transition-all scale-95 opacity-0" id="deleteModalContent">
+      <h3 class="text-lg font-bold text-gray-800 mb-3">确认删除</h3>
+      <p class="text-gray-600 mb-5">您确定要删除这条饮水记录吗？此操作不可撤销。</p>
+      <div class="flex gap-3">
+        <button id="cancelDeleteBtn" class="flex-1 bg-gray-200 hover:bg-gray-300 text-gray-800 py-2 px-4 rounded-lg transition-colors">
+          取消
+        </button>
+        <button id="confirmDeleteBtn" class="flex-1 bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-lg transition-colors">
+          确认删除
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="container mx-auto px-4 py-6 max-w-5xl">
+    <!-- 顶部导航 -->
+    <header class="flex justify-between items-center mb-8">
+      <h1 class="text-2xl md:text-3xl font-bold text-primary flex items-center">
+        <i class="fa fa-tint mr-2"></i>智能饮水助手
+      </h1>
+      <button id="settingsBtn" class="p-3 rounded-full bg-white shadow-md hover:bg-gray-100 transition-colors cursor-pointer">
+        <i class="fa fa-cog text-primary text-xl"></i>
+      </button>
+    </header>
+
+    <!-- 主内容区 - 饮水量显示区域（放大） -->
+    <div class="mb-8 bg-white rounded-2xl shadow-xl p-6 md:p-8">
+      <h2 class="text-xl md:text-2xl font-semibold mb-6 text-center">今日饮水进度</h2>
+      
+      <div class="flex flex-col md:flex-row items-center justify-center gap-8 md:gap-12">
+        <!-- 进度环 -->
+        <div class="relative flex justify-center">
+          <svg class="w-64 h-64 md:w-80 md:h-80" viewBox="0 0 100 100">
+            <!-- 背景环 -->
+            <circle class="text-gray-200" stroke-width="10" stroke="currentColor" fill="transparent" r="40" cx="50" cy="50"/>
+            <!-- 进度环 -->
+            <circle id="progressRing" class="text-primary progress-ring-circle" stroke-width="10" stroke="currentColor" fill="transparent" r="40" cx="50" cy="50" stroke-dasharray="251.2" stroke-dashoffset="251.2"/>
+          </svg>
+          <!-- 进度文本 -->
+          <div class="absolute inset-0 flex flex-col items-center justify-center">
+            <span id="progressText" class="text-5xl md:text-6xl font-bold text-primary">0%</span>
+            <span id="waterStats" class="text-lg md:text-xl text-gray-500 mt-2">0 / 0 ml</span>
+          </div>
+        </div>
+        
+        <!-- 饮水信息摘要 -->
+        <div class="w-full md:w-auto text-center md:text-left">
+          <div class="bg-blue-50 rounded-xl p-4 mb-4">
+            <p class="text-gray-500 text-sm mb-1">目标饮水量</p>
+            <p id="targetAmount" class="text-2xl md:text-3xl font-bold text-primary">0 ml</p>
+          </div>
+          <div class="bg-green-50 rounded-xl p-4">
+            <p class="text-gray-500 text-sm mb-1">已饮水量</p>
+            <p id="drankAmount" class="text-2xl md:text-3xl font-bold text-secondary">0 ml</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 功能区域 - 水平分布 -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- 健康小知识 -->
+      <div class="bg-white rounded-2xl shadow-lg p-6 card-hover">
+        <h3 class="font-semibold text-primary mb-4 flex items-center text-lg">
+          <i class="fa fa-lightbulb-o mr-2"></i>健康小知识
+        </h3>
+        <div id="motivationCard" class="min-h-[180px] flex items-center">
+          <p id="motivationText" class="text-gray-700 leading-relaxed">点击下方按钮添加今日饮水量，保持健康生活！</p>
+        </div>
+      </div>
+
+      <!-- 添加饮水量 -->
+      <div class="bg-white rounded-2xl shadow-lg p-6 card-hover">
+        <h3 class="font-semibold text-primary mb-4 flex items-center text-lg">
+          <i class="fa fa-plus-circle mr-2"></i>添加饮水量
+        </h3>
+        <div class="min-h-[180px] flex flex-col justify-center">
+          <div class="flex items-center mb-6">
+            <button id="decreaseBtn" class="p-3 bg-gray-100 rounded-l-lg hover:bg-gray-200 transition-colors">
+              <i class="fa fa-minus text-gray-600 text-xl"></i>
+            </button>
+            <input type="number" id="waterInput" min="50" max="1000" step="50" value="200" class="w-full text-center py-3 text-2xl border-t border-b border-gray-200 focus:outline-none focus:border-primary">
+            <button id="increaseBtn" class="p-3 bg-gray-100 rounded-r-lg hover:bg-gray-200 transition-colors">
+              <i class="fa fa-plus text-gray-600 text-xl"></i>
+            </button>
+            <span class="ml-3 text-xl text-gray-500">ml</span>
+          </div>
+          <button id="addWaterBtn" class="w-full bg-primary hover:bg-blue-600 text-white py-3 px-4 rounded-lg transition-colors flex items-center justify-center text-lg">
+            <i class="fa fa-tint mr-2"></i>添加到今日记录
+          </button>
+        </div>
+      </div>
+
+      <!-- 今日记录 -->
+      <div class="bg-white rounded-2xl shadow-lg p-6 card-hover">
+        <h3 class="font-semibold text-primary mb-4 flex items-center text-lg">
+          <i class="fa fa-history mr-2"></i>今日记录
+        </h3>
+        <div id="historyList" class="min-h-[180px] max-h-[180px] overflow-y-auto">
+          <!-- 记录将通过JavaScript动态添加 -->
+          <p class="text-gray-500 text-center py-8">暂无记录</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 多日统计区域 -->
+    <div class="mt-8 bg-white rounded-2xl shadow-xl p-6 md:p-8">
+      <h2 class="text-xl md:text-2xl font-semibold mb-6 text-center">多日饮水统计</h2>
+      
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="bg-blue-50 rounded-xl p-4 text-center">
+          <p class="text-gray-500 text-sm mb-1">平均饮水量</p>
+          <p id="averageAmount" class="text-2xl font-bold text-primary">0 ml</p>
+        </div>
+        <div class="bg-green-50 rounded-xl p-4 text-center">
+          <p class="text-gray-500 text-sm mb-1">达标天数</p>
+          <p id="targetDays" class="text-2xl font-bold text-secondary">0 天</p>
+        </div>
+        <div class="bg-purple-50 rounded-xl p-4 text-center">
+          <p class="text-gray-500 text-sm mb-1">总饮水量</p>
+          <p id="totalAmount" class="text-2xl font-bold text-purple-600">0 ml</p>
+        </div>
+      </div>
+      
+      <div class="h-80">
+        <canvas id="waterChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- 设置弹窗 -->
+  <div id="settingsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4 transform transition-all scale-95 opacity-0" id="modalContent">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-xl font-bold text-primary">个人设置</h2>
+        <button id="closeModalBtn" class="p-2 hover:bg-gray-100 rounded-full transition-colors">
+          <i class="fa fa-times text-gray-600"></i>
+        </button>
+      </div>
+      <form id="settingsForm" class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">性别</label>
+            <select id="gender" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary">
+              <option value="male">男</option>
+              <option value="female">女</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">年龄</label>
+            <input type="number" id="age" min="1" max="120" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary">
+          </div>
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">身高 (cm)</label>
+            <input type="number" id="height" min="50" max="250" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">体重 (kg)</label>
+            <input type="number" id="weight" min="10" max="200" step="0.1" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary">
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">活动量</label>
+          <select id="activity" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary">
+            <option value="sedentary">久坐（很少或不运动）</option>
+            <option value="light">轻度活动（每周运动1-3天）</option>
+            <option value="moderate">中度活动（每周运动3-5天）</option>
+            <option value="active">高度活动（每周运动6-7天）</option>
+            <option value="veryActive">极度活动（体力劳动或每日高强度训练）</option>
+          </select>
+        </div>
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <label class="block text-sm font-medium text-gray-700">每日目标饮水量 (ml)</label>
+            <button type="button" id="calculateTargetBtn" class="text-xs bg-primary text-white px-2 py-1 rounded hover:bg-blue-600 transition-colors">
+              计算推荐
+            </button>
+          </div>
+          <input type="number" id="dailyTarget" min="500" max="5000" step="100" class="w-full p-2 border border-gray-300 rounded-lg focus:outline-none focus:border-primary">
+          <p id="recommendationText" class="text-xs text-gray-500 mt-1 hidden">根据您的身体参数，推荐每日饮水量为 <span id="recommendedAmount" class="font-medium text-primary"></span> ml</p>
+        </div>
+        <div class="pt-4">
+          <button type="submit" class="w-full bg-primary hover:bg-blue-600 text-white py-2 px-4 rounded-lg transition-colors">
+            保存设置
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 成功提示 -->
+  <div id="successToast" class="fixed bottom-6 right-6 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg hidden transform transition-all translate-y-4 opacity-0">
+    <span>添加成功！</span>
+  </div>
+
+  <script>
+    // 健康知识数据
+    const healthTips = [
+      "饮水充足，维持新陈代谢，帮助身体排出代谢废物。",
+      "饮水充足，滋润呼吸道和消化道黏膜，减少干燥不适。",
+      "饮水充足，促进血液循环，降低血液黏稠度。",
+      "饮水充足，保护肾脏，减少肾结石、尿路感染的风险。",
+      "饮水充足，维持皮肤水润弹性，改善皮肤干燥粗糙。",
+      "饮水充足，缓解疲劳，提升身体活力和注意力。",
+      "饮水充足，帮助消化，促进肠道蠕动，预防便秘。",
+      "饮水充足，调节电解质平衡，保障肌肉和神经正常功能。",
+      "饮水充足，辅助体重管理，增加饱腹感，减少过量进食。",
+      "饮水不足，导致脱水，出现头晕、乏力、注意力不集中等症状。",
+      "饮水不足，加重肾脏负担，增加肾结石、肾炎的发病风险。",
+      "饮水不足，肠道蠕动减慢，引发便秘，长期可能导致痔疮或肛裂。",
+      "饮水不足，皮肤水分流失，变得干燥、暗沉，加速皱纹产生。",
+      "饮水不足，代谢废物堆积，降低免疫力，易引发感染。",
+      "饮水不足，肌肉和关节润滑不足，易出现酸痛、运动损伤。",
+      "每天饮水量控制在1500-2000毫升，根据体重、活动量调整。",
+      "以白开水为首选，避免用饮料、茶水替代纯水。",
+      "少量多次饮用，每次200-300毫升，避免一次性大量猛灌。",
+      "晨起空腹喝一杯温水，唤醒身体代谢。",
+      "餐前半小时喝一杯水，增加饱腹感，避免过量进食。",
+      "运动后及时补水，可适当补充电解质（如淡盐水）。",
+      "避免喝冰水，水温控制在20-30℃，减少肠胃刺激。",
+      "睡前1小时适量饮水，避免夜间脱水，但不建议过量（防起夜）。",
+      "不要等到口渴才喝，口渴时已处于轻度脱水状态。",
+      "白开水，可补充水分、无额外负担，无明显危害，过量饮水可能导致水中毒（罕见）。",
+      "绿茶含茶多酚，抗氧化、辅助提神，空腹喝刺激胃黏膜，睡前喝可能影响睡眠。",
+      "红茶温和养胃、促进消化，但含咖啡因，过量易心慌、失眠，长期喝可能染色牙齿。",
+      "乌龙茶降脂解腻、促进代谢，空腹饮用易刺激肠胃，孕妇需适量。",
+      "咖啡提神醒脑、促进血液循环，过量导致焦虑、手抖、依赖，影响钙吸收。",
+      "碳酸饮料短暂解渴、带来气泡口感，损伤牙齿珐琅质、导致肥胖，影响骨骼发育。",
+      "果汁饮料补充少量维生素，含糖量高易肥胖、升血糖，膳食纤维流失，刺激肠胃。",
+      "奶茶提供能量、口感香甜，高糖高脂易肥胖，含反式脂肪酸，过量影响心血管健康。",
+      "功能性饮料快速补充能量、提神，咖啡因和糖分过高，易导致心率加快、失眠，儿童不宜饮用。",
+      "蜂蜜水温和补水、提供少量营养，含糖量高，糖尿病患者禁用，空腹喝可能刺激胃酸分泌。"
+    ];
+
+    // DOM元素引用
+    let elements = {};
+    
+    // 应用数据
+    let waterData = {
+      total: 0,
+      history: [],
+      lastUpdated: new Date().toDateString(),
+      dailyRecords: {} // 多日记录存储
+    };
+
+    // 用于删除确认的记录索引
+    let recordToDelete = -1;
+
+    // 默认用户设置 - 确保所有属性都有初始值
+    const defaultUserSettings = {
+      gender: 'male',
+      age: 30,
+      height: 170,
+      weight: 60,
+      activity: 'sedentary',
+      dailyTarget: 2000
+    };
+    
+    let userSettings = { ...defaultUserSettings };
+    
+    // 防止重复提交的标志
+    let isSubmitting = false;
+
+    // 初始化应用
+    function initApp() {
+      try {
+        console.log('开始初始化应用...');
+        
+        // 获取所有DOM元素引用
+        getDOMElements();
+        
+        // 检查必要元素是否存在
+        checkRequiredElements();
+        
+        // 从本地存储加载数据
+        loadData();
+        
+        // 检查是否需要重置每日数据
+        checkDateReset();
+        
+        // 如果是首次使用，计算并设置推荐的每日目标饮水量
+        if (userSettings.dailyTarget === defaultUserSettings.dailyTarget) {
+          const recommended = calculateRecommendedWater(userSettings);
+          userSettings.dailyTarget = recommended;
+          saveUserSettings();
+        }
+        
+        // 更新UI
+        updateUI();
+        
+        // 设置随机健康知识
+        setRandomHealthTip();
+        
+        // 添加事件监听器（确保只添加一次）
+        addEventListeners();
+        
+        // 初始化多日统计图表
+        initWaterChart();
+        
+        console.log('应用初始化成功');
+      } catch (error) {
+        console.error('应用初始化失败:', error);
+        showError(`应用初始化失败: ${error.message}`);
+      }
+    }
+
+    // 获取所有DOM元素引用
+    function getDOMElements() {
+      elements = {
+        progressRing: document.getElementById('progressRing'),
+        progressText: document.getElementById('progressText'),
+        waterStats: document.getElementById('waterStats'),
+        targetAmount: document.getElementById('targetAmount'),
+        drankAmount: document.getElementById('drankAmount'),
+        motivationText: document.getElementById('motivationText'),
+        decreaseBtn: document.getElementById('decreaseBtn'),
+        increaseBtn: document.getElementById('increaseBtn'),
+        waterInput: document.getElementById('waterInput'),
+        addWaterBtn: document.getElementById('addWaterBtn'),
+        historyList: document.getElementById('historyList'),
+        settingsBtn: document.getElementById('settingsBtn'),
+        settingsModal: document.getElementById('settingsModal'),
+        modalContent: document.getElementById('modalContent'),
+        closeModalBtn: document.getElementById('closeModalBtn'),
+        settingsForm: document.getElementById('settingsForm'),
+        genderSelect: document.getElementById('gender'),
+        ageInput: document.getElementById('age'),
+        heightInput: document.getElementById('height'),
+        weightInput: document.getElementById('weight'),
+        activitySelect: document.getElementById('activity'),
+        dailyTargetInput: document.getElementById('dailyTarget'),
+        calculateTargetBtn: document.getElementById('calculateTargetBtn'),
+        recommendationText: document.getElementById('recommendationText'),
+        recommendedAmount: document.getElementById('recommendedAmount'),
+        successToast: document.getElementById('successToast'),
+        motivationCard: document.getElementById('motivationCard'),
+        errorContainer: document.getElementById('errorContainer'),
+        errorMessage: document.getElementById('errorMessage'),
+        retryBtn: document.getElementById('retryBtn'),
+        confirmDeleteModal: document.getElementById('confirmDeleteModal'),
+        deleteModalContent: document.getElementById('deleteModalContent'),
+        cancelDeleteBtn: document.getElementById('cancelDeleteBtn'),
+        confirmDeleteBtn: document.getElementById('confirmDeleteBtn'),
+        averageAmount: document.getElementById('averageAmount'),
+        targetDays: document.getElementById('targetDays'),
+        totalAmount: document.getElementById('totalAmount'),
+        waterChart: document.getElementById('waterChart')
+      };
+    }
+
+    // 检查必要元素是否存在
+    function checkRequiredElements() {
+      const requiredElements = [
+        'progressRing', 'progressText', 'waterStats', 
+        'settingsBtn', 'settingsModal', 'modalContent'
+      ];
+      
+      requiredElements.forEach(elementName => {
+        if (!elements[elementName]) {
+          throw new Error(`缺少必要的页面元素: ${elementName}`);
+        }
+      });
+    }
+
+    // 从本地存储加载数据
+    function loadData() {
+      try {
+        // 加载饮水数据
+        const savedWaterData = localStorage.getItem('waterData');
+        if (savedWaterData) {
+          const parsedData = JSON.parse(savedWaterData);
+          // 验证数据结构
+          if (parsedData && typeof parsedData === 'object') {
+            waterData = { 
+              total: 0,
+              history: [],
+              lastUpdated: new Date().toDateString(),
+              dailyRecords: {},
+              ...parsedData 
+            };
+          }
+        }
+        
+        // 加载用户设置
+        const savedSettings = localStorage.getItem('userSettings');
+        if (savedSettings) {
+          const parsedSettings = JSON.parse(savedSettings);
+          // 验证设置结构并与默认设置合并，确保所有属性都存在
+          if (parsedSettings && typeof parsedSettings === 'object') {
+            userSettings = { ...defaultUserSettings, ...parsedSettings };
+          }
+        }
+        
+        // 验证用户设置是否完整
+        validateUserSettings();
+        
+        // 更新设置表单
+        updateSettingsForm();
+        
+      } catch (error) {
+        console.error('加载数据失败，使用默认数据:', error);
+        // 重置为默认数据
+        waterData = { ...waterData };
+        userSettings = { ...defaultUserSettings };
+        
+        // 清除损坏的本地存储数据
+        localStorage.removeItem('waterData');
+        localStorage.removeItem('userSettings');
+      }
+    }
+
+    // 验证用户设置是否完整
+    function validateUserSettings() {
+      // 检查所有必要的属性是否存在
+      for (const key in defaultUserSettings) {
+        if (!(key in userSettings)) {
+          console.warn(`用户设置缺少属性: ${key}，使用默认值`);
+          userSettings[key] = defaultUserSettings[key];
+        }
+      }
+    }
+
+    // 更新设置表单
+    function updateSettingsForm() {
+      if (!elements.genderSelect) return;
+      
+      elements.genderSelect.value = userSettings.gender || defaultUserSettings.gender;
+      elements.ageInput.value = userSettings.age || defaultUserSettings.age;
+      elements.heightInput.value = userSettings.height || defaultUserSettings.height;
+      elements.weightInput.value = userSettings.weight || defaultUserSettings.weight;
+      elements.activitySelect.value = userSettings.activity || defaultUserSettings.activity;
+      elements.dailyTargetInput.value = userSettings.dailyTarget || defaultUserSettings.dailyTarget;
+    }
+
+    // 检查是否需要重置每日数据
+    function checkDateReset() {
+      const today = new Date().toDateString();
+      if (waterData.lastUpdated !== today) {
+        // 保存昨日数据
+        if (waterData.total > 0) {
+          waterData.dailyRecords[waterData.lastUpdated] = waterData.total;
+        }
+        waterData.total = 0;
+        waterData.history = [];
+        waterData.lastUpdated = today;
+        saveWaterData();
+      }
+    }
+
+    // 更新UI
+    function updateUI() {
+      updateProgressRing();
+      updateWaterStats();
+      updateSummaryStats();
+      updateHistoryList();
+      updateWaterStatsSummary();
+      updateWaterChart();
+    }
+
+    // 更新进度环
+    function updateProgressRing() {
+      if (!elements.progressRing || !elements.progressText) return;
+      
+      const circumference = 2 * Math.PI * 40;
+      const dailyTarget = userSettings.dailyTarget || defaultUserSettings.dailyTarget;
+      const percentage = Math.min(100, (waterData.total / dailyTarget) * 100);
+      const offset = circumference - (percentage / 100) * circumference;
+      
+      elements.progressRing.style.strokeDasharray = `${circumference} ${circumference}`;
+      elements.progressRing.style.strokeDashoffset = offset;
+      elements.progressText.textContent = `${Math.round(percentage)}%`;
+      
+      // 根据进度改变颜色
+      if (percentage < 30) {
+        elements.progressRing.classList.remove('text-yellow-500', 'text-green-500');
+        elements.progressRing.classList.add('text-red-500');
+      } else if (percentage < 70) {
+        elements.progressRing.classList.remove('text-red-500', 'text-green-500');
+        elements.progressRing.classList.add('text-yellow-500');
+      } else {
+        elements.progressRing.classList.remove('text-red-500', 'text-yellow-500');
+        elements.progressRing.classList.add('text-green-500');
+      }
+    }
+
+    // 更新饮水量统计
+    function updateWaterStats() {
+      if (!elements.waterStats) return;
+      
+      const dailyTarget = userSettings.dailyTarget || defaultUserSettings.dailyTarget;
+      elements.waterStats.textContent = `${waterData.total} / ${dailyTarget} ml`;
+    }
+
+    // 更新摘要统计
+    function updateSummaryStats() {
+      if (!elements.targetAmount || !elements.drankAmount) return;
+      
+      elements.targetAmount.textContent = `${userSettings.dailyTarget || defaultUserSettings.dailyTarget} ml`;
+      elements.drankAmount.textContent = `${waterData.total} ml`;
+    }
+
+    // 更新历史记录列表
+    function updateHistoryList() {
+      if (!elements.historyList) return;
+      
+      if (waterData.history.length === 0) {
+        elements.historyList.innerHTML = '<p class="text-gray-500 text-center py-8">暂无记录</p>';
+        return;
+      }
+      
+      elements.historyList.innerHTML = '';
+      // 倒序显示最近的记录
+      const reversedHistory = [...waterData.history].reverse();
+      
+      reversedHistory.forEach((record, index) => {
+        // 计算原始索引（因为我们反转了数组）
+        const originalIndex = waterData.history.length - 1 - index;
+        
+        const recordElement = document.createElement('div');
+        recordElement.className = 'flex justify-between items-center py-3 border-b border-gray-100 last:border-0';
+        recordElement.dataset.index = originalIndex;
+        
+        const timeElement = document.createElement('span');
+        timeElement.className = 'text-gray-600';
+        timeElement.textContent = formatTime(record.time);
+        
+        const amountContainer = document.createElement('div');
+        amountContainer.className = 'flex items-center gap-3';
+        
+        const amountElement = document.createElement('span');
+        amountElement.className = 'font-medium';
+        amountElement.textContent = `+${record.amount} ml`;
+        
+        const deleteBtn = document.createElement('button');
+        deleteBtn.className = 'text-gray-400 hover:text-red-500 transition-colors p-1';
+        deleteBtn.innerHTML = '<i class="fa fa-trash-o"></i>';
+        deleteBtn.title = '删除记录';
+        deleteBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openDeleteConfirmation(originalIndex);
+        });
+        
+        amountContainer.appendChild(amountElement);
+        amountContainer.appendChild(deleteBtn);
+        recordElement.appendChild(timeElement);
+        recordElement.appendChild(amountContainer);
+        elements.historyList.appendChild(recordElement);
+      });
+    }
+
+    // 更新多日统计摘要
+    function updateWaterStatsSummary() {
+      if (!elements.averageAmount || !elements.targetDays || !elements.totalAmount) return;
+      
+      // 获取所有记录的日期
+      const dates = Object.keys(waterData.dailyRecords);
+      // 添加今日数据
+      if (waterData.total > 0) {
+        dates.push(waterData.lastUpdated);
+        waterData.dailyRecords[waterData.lastUpdated] = waterData.total;
+      }
+      
+      // 计算统计数据
+      let total = 0;
+      let count = 0;
+      let targetDaysCount = 0;
+      const dailyTarget = userSettings.dailyTarget || defaultUserSettings.dailyTarget;
+      
+      dates.forEach(date => {
+        const amount = waterData.dailyRecords[date];
+        if (amount > 0) {
+          total += amount;
+          count++;
+          if (amount >= dailyTarget) {
+            targetDaysCount++;
+          }
+        }
+      });
+      
+      // 计算平均值
+      const average = count > 0 ? Math.round(total / count) : 0;
+      
+      // 更新UI
+      elements.averageAmount.textContent = `${average} ml`;
+      elements.targetDays.textContent = `${targetDaysCount} 天`;
+      elements.totalAmount.textContent = `${total} ml`;
+    }
+
+    // 初始化多日统计图表
+    function initWaterChart() {
+      if (!elements.waterChart || typeof Chart === 'undefined') return;
+      
+      // 销毁已存在的图表
+      if (window.waterConsumptionChart) {
+        window.waterConsumptionChart.destroy();
+      }
+      
+      // 创建新图表
+      window.waterConsumptionChart = new Chart(elements.waterChart, {
+        type: 'bar',
+        data: {
+          labels: [],
+          datasets: [
+            {
+              label: '每日饮水量 (ml)',
+              data: [],
+              backgroundColor: 'rgba(59, 130, 246, 0.7)',
+              borderColor: 'rgba(59, 130, 246, 1)',
+              borderWidth: 1
+            },
+            {
+              label: '目标饮水量 (ml)',
+              data: [],
+              type: 'line',
+              fill: false,
+              borderColor: 'rgba(239, 68, 68, 1)',
+              borderWidth: 2,
+              pointRadius: 0,
+              borderDash: [5, 5]
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'top',
+            },
+            tooltip: {
+              mode: 'index',
+              intersect: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: '饮水量 (ml)'
+              }
+            },
+            x: {
+              title: {
+                display: true,
+                text: '日期'
+              }
+            }
+          }
+        }
+      });
+      
+      updateWaterChart();
+    }
+
+    // 更新多日统计图表
+    function updateWaterChart() {
+      if (!window.waterConsumptionChart) return;
+      
+      // 获取最近7天的记录
+      const dates = [];
+      const amounts = [];
+      const targets = [];
+      const dailyTarget = userSettings.dailyTarget || defaultUserSettings.dailyTarget;
+      
+      // 获取最近7天的日期
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toDateString();
+        const formattedDate = `${date.getMonth() + 1}/${date.getDate()}`;
+        
+        dates.push(formattedDate);
+        amounts.push(waterData.dailyRecords[dateStr] || 0);
+        targets.push(dailyTarget);
+      }
+      
+      // 更新今日数据
+      const today = new Date().toDateString();
+      const todayIndex = dates.length - 1;
+      amounts[todayIndex] = waterData.total;
+      
+      // 更新图表数据
+      window.waterConsumptionChart.data.labels = dates;
+      window.waterConsumptionChart.data.datasets[0].data = amounts;
+      window.waterConsumptionChart.data.datasets[1].data = targets;
+      window.waterConsumptionChart.update();
+    }
+
+    // 打开删除确认弹窗
+    function openDeleteConfirmation(index) {
+      if (!elements.confirmDeleteModal || !elements.deleteModalContent) return;
+      
+      // 保存要删除的记录索引
+      recordToDelete = index;
+      
+      elements.confirmDeleteModal.classList.remove('hidden');
+      
+      setTimeout(() => {
+        elements.deleteModalContent.classList.remove('scale-95', 'opacity-0');
+        elements.deleteModalContent.classList.add('scale-100', 'opacity-100');
+      }, 10);
+    }
+
+    // 关闭删除确认弹窗
+    function closeDeleteConfirmation() {
+      if (!elements.deleteModalContent || !elements.confirmDeleteModal) return;
+      
+      elements.deleteModalContent.classList.remove('scale-100', 'opacity-100');
+      elements.deleteModalContent.classList.add('scale-95', 'opacity-0');
+      
+      setTimeout(() => {
+        elements.confirmDeleteModal.classList.add('hidden');
+        recordToDelete = -1; // 重置
+      }, 300);
+    }
+
+    // 执行删除操作
+    function deleteRecord() {
+      if (recordToDelete === -1 || recordToDelete >= waterData.history.length) {
+        closeDeleteConfirmation();
+        return;
+      }
+      
+      // 获取要删除的记录
+      const record = waterData.history[recordToDelete];
+      
+      // 从总饮水量中减去
+      waterData.total -= record.amount;
+      if (waterData.total < 0) waterData.total = 0;
+      
+      // 从DOM中移除元素并添加动画
+      const recordElement = elements.historyList.querySelector(`[data-index="${recordToDelete}"]`);
+      if (recordElement) {
+        recordElement.classList.add('animate-fade-out');
+        
+        // 等待动画完成后再更新数据
+        setTimeout(() => {
+          // 从数组中删除记录
+          waterData.history.splice(recordToDelete, 1);
+          
+          // 保存数据
+          saveWaterData();
+          
+          // 更新UI
+          updateUI();
+          
+          // 关闭弹窗
+          closeDeleteConfirmation();
+          
+          // 显示成功提示
+          showToast('记录已删除');
+        }, 300);
+      } else {
+        // 如果找不到元素，直接删除
+        waterData.history.splice(recordToDelete, 1);
+        saveWaterData();
+        updateUI();
+        closeDeleteConfirmation();
+        showToast('记录已删除');
+      }
+    }
+
+    // 格式化时间
+    function formatTime(timeString) {
+      try {
+        const date = new Date(timeString);
+        const hours = date.getHours().toString().padStart(2, '0');
+        const minutes = date.getMinutes().toString().padStart(2, '0');
+        return `${hours}:${minutes}`;
+      } catch (error) {
+        console.error('时间格式化失败:', error);
+        return '未知时间';
+      }
+    }
+
+    // 设置随机健康知识
+    function setRandomHealthTip() {
+      if (!elements.motivationText || !elements.motivationCard) return;
+      
+      const randomIndex = Math.floor(Math.random() * healthTips.length);
+      elements.motivationText.textContent = healthTips[randomIndex];
+      
+      // 添加动画效果
+      elements.motivationCard.classList.add('animate-pulse-slow');
+      setTimeout(() => {
+        elements.motivationCard.classList.remove('animate-pulse-slow');
+      }, 1000);
+    }
+
+    // 添加事件监听器（关键修复：确保只添加一次）
+    function addEventListeners() {
+      console.log('添加事件监听器...');
+      
+      // 重试按钮事件
+      if (elements.retryBtn) {
+        // 先移除已有监听器，防止重复绑定
+        elements.retryBtn.removeEventListener('click', retryInit);
+        elements.retryBtn.addEventListener('click', retryInit);
+      }
+      
+      // 增减按钮
+      if (elements.decreaseBtn) {
+        elements.decreaseBtn.removeEventListener('click', decreaseWater);
+        elements.decreaseBtn.addEventListener('click', decreaseWater);
+      }
+      
+      if (elements.increaseBtn) {
+        elements.increaseBtn.removeEventListener('click', increaseWater);
+        elements.increaseBtn.addEventListener('click', increaseWater);
+      }
+      
+      // 添加饮水量按钮（核心修复：只保留一个事件绑定）
+      if (elements.addWaterBtn) {
+        // 先移除所有已有的点击事件
+        elements.addWaterBtn.removeEventListener('click', addWater);
+        // 只添加一次事件监听器
+        elements.addWaterBtn.addEventListener('click', addWater);
+        console.log('添加饮水量按钮事件监听器已绑定');
+      } else {
+        console.error('addWaterBtn元素未找到');
+      }
+      
+      // 设置按钮
+      if (elements.settingsBtn) {
+        elements.settingsBtn.removeEventListener('click', openSettings);
+        elements.settingsBtn.addEventListener('click', openSettings);
+      }
+      
+      // 关闭设置弹窗
+      if (elements.closeModalBtn) {
+        elements.closeModalBtn.removeEventListener('click', closeSettings);
+        elements.closeModalBtn.addEventListener('click', closeSettings);
+      }
+      
+      // 设置表单提交
+      if (elements.settingsForm) {
+        elements.settingsForm.removeEventListener('submit', saveSettings);
+        elements.settingsForm.addEventListener('submit', saveSettings);
+      }
+      
+      // 点击弹窗外部关闭
+      if (elements.settingsModal) {
+        elements.settingsModal.removeEventListener('click', handleModalOutsideClick);
+        elements.settingsModal.addEventListener('click', handleModalOutsideClick);
+      }
+      
+      // 计算推荐饮水量按钮
+      if (elements.calculateTargetBtn) {
+        elements.calculateTargetBtn.removeEventListener('click', calculateAndShowRecommendation);
+        elements.calculateTargetBtn.addEventListener('click', calculateAndShowRecommendation);
+      }
+      
+      // 监听身体参数变化，自动更新推荐值
+      if (elements.genderSelect) {
+        elements.genderSelect.removeEventListener('change', calculateAndShowRecommendation);
+        elements.genderSelect.addEventListener('change', calculateAndShowRecommendation);
+      }
+      
+      if (elements.ageInput) {
+        elements.ageInput.removeEventListener('input', calculateAndShowRecommendation);
+        elements.ageInput.addEventListener('input', calculateAndShowRecommendation);
+      }
+      
+      if (elements.heightInput) {
+        elements.heightInput.removeEventListener('input', calculateAndShowRecommendation);
+        elements.heightInput.addEventListener('input', calculateAndShowRecommendation);
+      }
+      
+      if (elements.weightInput) {
+        elements.weightInput.removeEventListener('input', calculateAndShowRecommendation);
+        elements.weightInput.addEventListener('input', calculateAndShowRecommendation);
+      }
+      
+      if (elements.activitySelect) {
+        elements.activitySelect.removeEventListener('change', calculateAndShowRecommendation);
+        elements.activitySelect.addEventListener('change', calculateAndShowRecommendation);
+      }
+      
+      // 删除确认按钮事件
+      if (elements.confirmDeleteBtn) {
+        elements.confirmDeleteBtn.removeEventListener('click', deleteRecord);
+        elements.confirmDeleteBtn.addEventListener('click', deleteRecord);
+      }
+      
+      // 取消删除按钮事件
+      if (elements.cancelDeleteBtn) {
+        elements.cancelDeleteBtn.removeEventListener('click', closeDeleteConfirmation);
+        elements.cancelDeleteBtn.addEventListener('click', closeDeleteConfirmation);
+      }
+      
+      // 点击删除弹窗外部关闭
+      if (elements.confirmDeleteModal) {
+        elements.confirmDeleteModal.removeEventListener('click', handleDeleteModalOutsideClick);
+        elements.confirmDeleteModal.addEventListener('click', handleDeleteModalOutsideClick);
+      }
+      
+      // 每小时显示一次新的健康知识
+      startHealthTipsRotation();
+    }
+    
+    // 重试初始化函数
+    function retryInit() {
+      elements.errorContainer.classList.add('hidden');
+      initApp();
+    }
+    
+    // 减少饮水量
+    function decreaseWater() {
+      if (!elements.waterInput) return;
+      
+      const currentValue = parseInt(elements.waterInput.value);
+      if (currentValue > 50) {
+        elements.waterInput.value = currentValue - 50;
+      }
+    }
+    
+    // 增加饮水量
+    function increaseWater() {
+      if (!elements.waterInput) return;
+      
+      const currentValue = parseInt(elements.waterInput.value);
+      if (currentValue < 1000) {
+        elements.waterInput.value = currentValue + 50;
+      }
+    }
+    
+    // 处理设置弹窗外部点击
+    function handleModalOutsideClick(e) {
+      if (e.target === elements.settingsModal) {
+        closeSettings();
+      }
+    }
+    
+    // 处理删除弹窗外部点击
+    function handleDeleteModalOutsideClick(e) {
+      if (e.target === elements.confirmDeleteModal) {
+        closeDeleteConfirmation();
+      }
+    }
+    
+    // 开始健康知识轮播
+    function startHealthTipsRotation() {
+      // 立即显示一条健康知识
+      setRandomHealthTip();
+      
+      // 每小时更新一次健康知识
+      setInterval(() => {
+        // 添加淡入淡出动画效果
+        if (elements.motivationCard) {
+          elements.motivationCard.style.opacity = '0';
+          elements.motivationCard.style.transform = 'scale(0.95)';
+          
+          setTimeout(() => {
+            setRandomHealthTip();
+            elements.motivationCard.style.opacity = '1';
+            elements.motivationCard.style.transform = 'scale(1)';
+          }, 500);
+        }
+      }, 3600000); // 3600000毫秒 = 1小时
+    }
+    
+    // 计算并显示推荐饮水量
+    function calculateAndShowRecommendation() {
+      if (!elements.genderSelect || !elements.ageInput || 
+          !elements.heightInput || !elements.weightInput || 
+          !elements.activitySelect || !elements.recommendationText ||
+          !elements.recommendedAmount) {
+        return;
+      }
+      
+      // 获取当前表单中的身体参数
+      const gender = elements.genderSelect.value;
+      const age = parseInt(elements.ageInput.value);
+      const height = parseInt(elements.heightInput.value);
+      const weight = parseFloat(elements.weightInput.value);
+      const activity = elements.activitySelect.value;
+      
+      // 验证数据是否有效
+      if (isNaN(age) || age <= 0 || age > 120 ||
+          isNaN(height) || height <= 0 || height > 250 ||
+          isNaN(weight) || weight <= 0 || weight > 200) {
+        elements.recommendationText.classList.add('hidden');
+        return;
+      }
+      
+      // 创建临时设置对象用于计算
+      const tempSettings = {
+        gender,
+        age,
+        height,
+        weight,
+        activity
+      };
+      
+      // 计算推荐饮水量
+      const recommended = calculateRecommendedWater(tempSettings);
+      
+      // 显示推荐文本
+      elements.recommendedAmount.textContent = recommended;
+      elements.recommendationText.classList.remove('hidden');
+      
+      // 如果用户还没有设置每日目标，自动填充推荐值
+      if (elements.dailyTargetInput && (!elements.dailyTargetInput.value || elements.dailyTargetInput.value === '')) {
+        elements.dailyTargetInput.value = recommended;
+      }
+    }
+
+    // 添加饮水量（核心修复：防止重复提交）
+    function addWater() {
+      // 防止重复提交
+      if (isSubmitting) {
+        console.log('防止重复提交：正在处理中...');
+        return;
+      }
+      
+      try {
+        console.log('执行addWater函数');
+        isSubmitting = true;
+        
+        if (!elements.waterInput || !elements.successToast) {
+          throw new Error('缺少必要的DOM元素');
+        }
+        
+        const amount = parseInt(elements.waterInput.value);
+        
+        if (isNaN(amount) || amount <= 0) {
+          throw new Error('请输入有效的饮水量');
+        }
+        
+        console.log(`添加饮水量: ${amount} ml`);
+        
+        // 更新总饮水量
+        waterData.total += amount;
+        
+        // 添加到历史记录
+        waterData.history.push({
+          amount,
+          time: new Date().toISOString()
+        });
+        
+        // 保存数据
+        saveWaterData();
+        
+        // 更新UI
+        updateUI();
+        
+        // 显示成功提示
+        showToast(`成功添加 ${amount} ml！`);
+        
+        // 重置输入框为默认值（但不自动提交）
+        elements.waterInput.value = 200;
+        
+        // 更新健康知识
+        setRandomHealthTip();
+        
+      } catch (error) {
+        console.error('添加饮水量失败:', error);
+        alert(`添加失败: ${error.message}`);
+      } finally {
+        // 重置提交状态
+        setTimeout(() => {
+          isSubmitting = false;
+        }, 500);
+      }
+    }
+
+    // 显示提示消息
+    function showToast(message) {
+      if (!elements.successToast) return;
+      
+      // 更新提示消息
+      const toastText = elements.successToast.querySelector('span');
+      if (toastText) {
+        toastText.textContent = message;
+      }
+      
+      // 显示提示
+      elements.successToast.classList.remove('hidden', 'translate-y-4', 'opacity-0');
+      elements.successToast.classList.add('translate-y-0', 'opacity-100');
+      
+      // 3秒后隐藏
+      setTimeout(() => {
+        elements.successToast.classList.remove('translate-y-0', 'opacity-100');
+        elements.successToast.classList.add('translate-y-4', 'opacity-0');
+        
+        setTimeout(() => {
+          elements.successToast.classList.add('hidden');
+        }, 300);
+      }, 3000);
+    }
+
+    // 保存饮水量数据
+    function saveWaterData() {
+      try {
+        localStorage.setItem('waterData', JSON.stringify(waterData));
+      } catch (error) {
+        console.error('保存饮水数据失败:', error);
+        alert('保存数据失败，请稍后重试');
+      }
+    }
+
+    // 保存用户设置
+    function saveUserSettings() {
+      try {
+        localStorage.setItem('userSettings', JSON.stringify(userSettings));
+      } catch (error) {
+        console.error('保存用户设置失败:', error);
+        alert('保存设置失败，请稍后重试');
+      }
+    }
+
+    // 显示错误提示
+    function showError(message) {
+      if (!elements.errorContainer || !elements.errorMessage) {
+        alert(message);
+        return;
+      }
+      
+      elements.errorMessage.textContent = message;
+      elements.errorContainer.classList.remove('hidden');
+    }
+
+    // 打开设置弹窗
+    function openSettings() {
+      console.log('尝试打开设置弹窗');
+      
+      if (!elements.settingsModal || !elements.modalContent) {
+        console.error('缺少设置弹窗元素');
+        alert('无法打开设置，缺少必要的页面元素');
+        return;
+      }
+      
+      elements.settingsModal.classList.remove('hidden');
+      
+      setTimeout(() => {
+        elements.modalContent.classList.remove('scale-95', 'opacity-0');
+        elements.modalContent.classList.add('scale-100', 'opacity-100');
+        
+        // 延迟一下再计算推荐值，确保表单已经更新
+        setTimeout(() => {
+          calculateAndShowRecommendation();
+        }, 100);
+      }, 10);
+    }
+
+    // 关闭设置弹窗
+    function closeSettings() {
+      if (!elements.modalContent || !elements.settingsModal) return;
+      
+      elements.modalContent.classList.remove('scale-100', 'opacity-100');
+      elements.modalContent.classList.add('scale-95', 'opacity-0');
+      
+      setTimeout(() => {
+        elements.settingsModal.classList.add('hidden');
+      }, 300);
+    }
+
+    // 保存设置
+    function saveSettings(e) {
+      e.preventDefault();
+      
+      if (!elements.genderSelect || !elements.ageInput || 
+          !elements.heightInput || !elements.weightInput || 
+          !elements.activitySelect || !elements.dailyTargetInput) {
+        return;
+      }
+      
+      // 获取表单数据
+      const gender = elements.genderSelect.value;
+      const age = parseInt(elements.ageInput.value);
+      const height = parseInt(elements.heightInput.value);
+      const weight = parseFloat(elements.weightInput.value);
+      const activity = elements.activitySelect.value;
+      const dailyTarget = parseInt(elements.dailyTargetInput.value);
+      
+      // 验证数据
+      if (isNaN(age) || age <= 0 || age > 120) {
+        alert('请输入有效的年龄');
+        return;
+      }
+      
+      if (isNaN(height) || height <= 0 || height > 250) {
+        alert('请输入有效的身高');
+        return;
+      }
+      
+      if (isNaN(weight) || weight <= 0 || weight > 200) {
+        alert('请输入有效的体重');
+        return;
+      }
+      
+      if (isNaN(dailyTarget) || dailyTarget < 500 || dailyTarget > 5000) {
+        alert('请输入有效的每日目标饮水量（500-5000ml）');
+        return;
+      }
+      
+      // 更新用户设置
+      userSettings = {
+        gender,
+        age,
+        height,
+        weight,
+        activity,
+        dailyTarget
+      };
+      
+      // 保存设置
+      saveUserSettings();
+      
+      // 更新UI
+      updateUI();
+      
+      // 关闭弹窗
+      closeSettings();
+      
+      // 显示成功提示
+      showToast('设置已保存');
+    }
+
+    // 计算推荐饮水量
+    function calculateRecommendedWater(settings) {
+      try {
+        // 如果没有提供设置，则使用当前用户设置
+        const userSettings = settings || window.userSettings || defaultUserSettings;
+        
+        // 确保设置对象有效
+        if (!userSettings || typeof userSettings !== 'object') {
+          console.warn('使用默认设置计算推荐饮水量');
+          return defaultUserSettings.dailyTarget;
+        }
+        
+        // Mifflin-St Jeor公式估算基础代谢率(BMR)
+        let bmr;
+        if (userSettings.gender === 'male') {
+          bmr = (10 * (userSettings.weight || 0)) + (6.25 * (userSettings.height || 0)) - (5 * (userSettings.age || 0)) + 5;
+        } else {
+          bmr = (10 * (userSettings.weight || 0)) + (6.25 * (userSettings.height || 0)) - (5 * (userSettings.age || 0)) - 161;
+        }
+        
+        // 确保BMR为正数
+        if (bmr <= 0) {
+          bmr = 1500; // 默认值
+        }
+        
+        // 根据活动水平调整
+        let activityFactor;
+        switch (userSettings.activity) {
+          case 'sedentary':
+            activityFactor = 1.2;
+            break;
+          case 'light':
+            activityFactor = 1.375;
+            break;
+          case 'moderate':
+            activityFactor = 1.55;
+            break;
+          case 'active':
+            activityFactor = 1.725;
+            break;
+          case 'veryActive':
+            activityFactor = 1.9;
+            break;
+          default:
+            activityFactor = 1.2;
+        }
+        
+        // 每日总能量消耗(TDEE)
+        const tdee = bmr * activityFactor;
+        
+        // 每消耗1千卡能量需要1-1.5毫升水
+        const recommendedWater = Math.round(tdee * 1.2 / 1000) * 1000;
+        
+        // 确保在合理范围内
+        return Math.max(1500, Math.min(3500, recommendedWater));
+      } catch (error) {
+        console.error('计算推荐饮水量失败:', error);
+        return defaultUserSettings.dailyTarget;
+      }
+    }
+
+    // 添加全局错误处理
+    window.addEventListener('error', function(error) {
+      console.error('全局错误:', error);
+      showError(`发生错误: ${error.message}`);
+    });
+
+    // 初始化应用（确保只执行一次）
+    let appInitialized = false;
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!appInitialized) {
+        appInitialized = true;
+        initApp();
+      }
+    });
+  </script>
+</body>
+</html>
+    
